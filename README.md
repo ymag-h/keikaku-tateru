@@ -1,25 +1,13 @@
-# keikaku-qc
+# keikaku-tateru
 
-NRT5/HND2 QC チーム向け 計画実績アプリ
+計画実績アプリ
 
-## 現在の Phase
-
-**Phase ①: xlsxImport** (既存.xlsx → config JSON 4本)
-
-## セットアップ
-
-### 1. 依存インストール
+### 依存インストール
 VSCode ターミナル (Ctrl+@) で:
 ```bash
 npm install
 ```
-
-### 2. 入力ファイルの準備
-
-- `input/qa_plan.xlsx` ← 既存の `【NRT5_HND2】QA計画実績.xlsx` (コピー済)
-- `input/air_bins.txt` ← Air 対象 Bin ID を改行区切りで追記
-
-### 3. bootstrap 実行
+### bootstrap 実行
 ```bash
 npm run bootstrap
 ```
@@ -43,7 +31,7 @@ keikaku-qc/
 └── package.json
 ```
 
-## 次の Phase 予定
+## 次の予定
 
 - ② SettingsDialog (React) — config を UI で編集
 - ③ CSV import (Andon / SIM)
