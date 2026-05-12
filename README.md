@@ -1,12 +1,7 @@
 # keikaku-tateru
+仕事で使うツール
+忘備録用
 
-計画実績アプリ
-
-### 依存インストール
-VSCode ターミナル (Ctrl+@) で:
-```bash
-npm install
-```
 ### bootstrap 実行
 ```bash
 npm run bootstrap
