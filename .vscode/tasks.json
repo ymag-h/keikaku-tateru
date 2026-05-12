@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "bootstrap (xlsx → config)",
+      "type": "shell",
+      "command": "C:/Users/hinatasa/.aki/bin/bun.exe",
+      "args": ["run", "bootstrap"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "install deps",
+      "type": "shell",
+      "command": "C:/Users/hinatasa/.aki/bin/bun.exe",
+      "args": ["install"],
+      "problemMatcher": []
+    },
+    {
+      "label": "type check",
+      "type": "shell",
+      "command": "C:/Users/hinatasa/.aki/bin/bun.exe",
+      "args": ["x", "tsc", "--noEmit"],
+      "group": "test",
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    }
+  ]
+}

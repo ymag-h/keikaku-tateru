@@ -1,0 +1,19 @@
+node_modules/
+dist/
+*.log
+.env
+.DS_Store
+
+# 実行時に生成される
+config/*.json
+config/shifts/
+
+# 手元の入力ファイル (共有フォルダに置かないよう注意)
+input/*.xlsx
+input/*.csv
+
+# Electron / electron-builder output
+dist-electron/
+release/
+bun.lockb
+.vite/
