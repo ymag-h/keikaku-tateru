@@ -12,7 +12,6 @@ npm run bootstrap
 ```
 keikaku-qc/
 ├── input/                    ← 手元の入力ファイル
-│   ├── qa_plan.xlsx
 │   └── air_bins.txt
 ├── scripts/
 │   └── bootstrap-from-xlsx.ts  ← 現 Phase のメイン
