@@ -22,4 +22,7 @@ contextBridge.exposeInMainWorld('api', {
   listActualsByDate: (date: string) => ipcRenderer.invoke('actuals:listByDate', date),
   listActualsByRange: (start: string, end: string) =>
     ipcRenderer.invoke('actuals:listByRange', start, end),
+  importFromXlsx: (opts?: { mode?: string; filePath?: string }) => ipcRenderer.invoke('import:fromXlsx', opts),
+  readBoard: () => ipcRenderer.invoke('board:read'),
+  writeBoard: (posts: unknown[]) => ipcRenderer.invoke('board:write', posts),
 });

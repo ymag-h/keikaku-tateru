@@ -112,6 +112,37 @@ declare global {
         actuals?: Array<{ login: string; date: string; data: unknown }>;
         error?: string;
       }>;
+      importFromXlsx: (opts?: { mode?: string; filePath?: string }) => Promise<{
+        ok: boolean;
+        // import result
+        actualsCount?: number;
+        plansCount?: number;
+        plansSkipped?: number;
+        plansOverwritten?: number;
+        loginCount?: number;
+        dateRange?: string;
+        unmappedItems?: string[];
+        // preview result
+        filePath?: string;
+        existingPlanDates?: string[];
+        newPlanDates?: string[];
+        totalRows?: number;
+        error?: string;
+      }>;
+      readBoard: () => Promise<{
+        ok: boolean;
+        posts: Array<{
+          id: string;
+          author: string;
+          body: string;
+          ts: string;
+        }>;
+        error?: string;
+      }>;
+      writeBoard: (posts: unknown[]) => Promise<{
+        ok: boolean;
+        error?: string;
+      }>;
     };
   }
 }

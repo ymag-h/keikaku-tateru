@@ -17,6 +17,7 @@ import type { Member } from './MembersTab';
 import type { RoutinesFile } from './RoutinesTab';
 import type { Role } from '@/lib/roles';
 import { plannedRoles } from '@/lib/roles';
+import type { AppMeta } from './settings/GeneralPane';
 import {
   type DailyPlan,
   type UserActual,
@@ -35,12 +36,13 @@ type Props = {
   routines: RoutinesFile | null;
   planSlots: PlanSlots;
   roles?: Role[];
+  meta?: AppMeta | null;
 };
 
 type ActualsMap = Record<string, UserActual>;
 type Mode = 'plan' | 'actuals';
 
-export function ActualsTab({ members, routines, planSlots, roles }: Props) {
+export function ActualsTab({ members, routines, planSlots, roles, meta }: Props) {
   const [date, setDate] = useState<string>(todayISO());
   const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [actuals, setActuals] = useState<ActualsMap>({});
@@ -379,6 +381,7 @@ export function ActualsTab({ members, routines, planSlots, roles }: Props) {
                 routines={routines}
                 planSlots={planSlots}
                 roles={roles}
+                showForecastPanel={meta?.layout?.show_forecast_panel !== false}
               />
             ) : (
               <ActualsPostingView

@@ -28,6 +28,7 @@ export type DailyRoutine = {
   order: number;
   applicable_roles?: string[]; // Role ID 配列
   jobs_count?: boolean;
+  hide_from_backlog?: boolean; // Backlog・配信用に非表示
 };
 
 export type WeeklyRoutine = {
@@ -814,19 +815,33 @@ function EditModal({ kind, item, roles, onApply, onClose }: EditModalProps) {
 
           {/* Jobs count (daily / role-specific のみ) */}
           {!isWeekly && (
-            <div className="space-y-1">
+            <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={it.jobs_count ?? false}
-                  onChange={(e) => onApply({ jobs_count: e.target.checked })}
+                  onChange={(e) => onApply({ jobs_count: e.target.checked, ...(!e.target.checked ? { hide_from_backlog: false } : {}) })}
                   className="h-4 w-4"
                 />
                 <span className="font-medium text-slate-700">Jobs カウント対象</span>
                 <span className="text-xs text-slate-400">
-                  (JPH表示 / Job数入力欄が出ます)
+                  (目標JPH / Job数入力欄が出ます)
                 </span>
               </label>
+              {(it.jobs_count ?? false) && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer ml-6">
+                  <input
+                    type="checkbox"
+                    checked={it.hide_from_backlog ?? false}
+                    onChange={(e) => onApply({ hide_from_backlog: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-slate-600">配信用・Backlog に表示しない</span>
+                  <span className="text-xs text-slate-400">
+                    (ダッシュボードのJob Count推移には引き続き表示)
+                  </span>
+                </label>
+              )}
             </div>
           )}
 

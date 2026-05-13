@@ -13,12 +13,14 @@ import type { RoutinesFile, DailyRoutine } from './RoutinesTab';
 import type { ShiftsFile } from './ShiftsTab';
 import type { Role } from '@/lib/roles';
 import { plannedRoles, getRolePanelClasses } from '@/lib/roles';
+import type { AppMeta } from './settings/GeneralPane';
 import {
   type DailyPlan,
   type AdhocTask,
   type CustomRoutine,
   type PlanSlots,
   forecastRoutineIds,
+  backlogRoutineIds,
   createEmptyPlan,
   migratePlanToV11,
   routinesForRole,
@@ -44,6 +46,7 @@ type Props = {
   shifts: ShiftsFile | null;
   planSlots: PlanSlots;
   roles?: Role[];
+  meta?: AppMeta | null;
 };
 
 function uid(prefix: string): string {
@@ -51,17 +54,15 @@ function uid(prefix: string): string {
 }
 
 function calcPlanLh(
-  forecast: number | null,
   backlog: number,
   jph: number | null,
 ): number {
   if (!jph || jph <= 0) return 0;
-  const total = (forecast ?? 0) + (backlog ?? 0);
-  if (total <= 0) return 0;
-  return Math.round((total / jph) * 10) / 10;
+  if (backlog <= 0) return 0;
+  return Math.round((backlog / jph) * 10) / 10;
 }
 
-export function PlansTab({ members, routines, shifts, planSlots, roles }: Props) {
+export function PlansTab({ members, routines, shifts, planSlots, roles, meta }: Props) {
   const [date, setDate] = useState<string>(todayISO());
   const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -75,8 +76,9 @@ export function PlansTab({ members, routines, shifts, planSlots, roles }: Props)
   const load = useCallback(async () => {
     try {
       const raw = await window.api.readPlan(date);
-      if (raw) {
-        setPlan(migratePlanToV11(raw, routines, planSlots));
+      // readPlan は { ok, data, path } のラッパー
+      if (raw && raw.ok && raw.data) {
+        setPlan(migratePlanToV11(raw.data, routines, planSlots));
       } else {
         setPlan(createEmptyPlan(date, routines, planSlots));
       }
@@ -150,7 +152,7 @@ export function PlansTab({ members, routines, shifts, planSlots, roles }: Props)
     setDirty(true);
   }, []);
 
-  // --- processing_forecasts 更新 ---
+  // --- processing_forecasts 更新 (担当者への自動配分つき) ---
   const updateForecast = (
     id: string,
     patch: Partial<DailyPlan['processing_forecasts'][string]>,
@@ -162,16 +164,39 @@ export function PlansTab({ members, routines, shifts, planSlots, roles }: Props)
       target_jph: null,
       plan_lh: 0,
       risk_note: '',
+      assignees: [],
     };
     const merged = { ...cur, ...patch };
-    merged.plan_lh = calcPlanLh(
-      merged.forecast_units,
-      merged.backlog_units,
-      merged.target_jph,
-    );
-    patchPlan({
+    merged.plan_lh = calcPlanLh(merged.backlog_units, merged.target_jph);
+
+    // 担当者への Plan LH 自動配分
+    const nextAssign = { ...plan.assignments };
+    const oldAssignees = new Set(cur.assignees ?? []);
+    const newAssignees = merged.assignees ?? [];
+
+    // 旧担当から外れた人の該当ルーチンを削除
+    for (const login of oldAssignees) {
+      if (!newAssignees.includes(login) && nextAssign[login]) {
+        const { [id]: _, ...rest } = nextAssign[login];
+        nextAssign[login] = rest;
+      }
+    }
+    // 新担当に均等配分 (小数第2位切り捨て)
+    if (newAssignees.length > 0) {
+      const perPerson = merged.plan_lh > 0
+        ? Math.floor((merged.plan_lh / newAssignees.length) * 100) / 100
+        : 0;
+      for (const login of newAssignees) {
+        nextAssign[login] = { ...(nextAssign[login] ?? {}), [id]: perPerson };
+      }
+    }
+
+    setPlan({
+      ...plan,
       processing_forecasts: { ...plan.processing_forecasts, [id]: merged },
+      assignments: nextAssign,
     });
+    setDirty(true);
   };
 
   // --- assignments 更新 ---
@@ -354,23 +379,31 @@ export function PlansTab({ members, routines, shifts, planSlots, roles }: Props)
       </div>
 
       {/* ---- 上段: 左ブロック (Daily予測 / Adhoc / Weekly) ---- */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        {/* Daily 処理予測 */}
+      <div
+        className={`grid grid-cols-1 gap-3 ${
+          meta?.layout?.show_forecast_panel !== false
+            ? 'lg:grid-cols-3'
+            : 'lg:grid-cols-2'
+        }`}
+      >
+        {/* Routine Backlog・必要LH (レイアウト設定で非表示可) */}
+        {meta?.layout?.show_forecast_panel !== false && (
         <div className="rounded-lg border-2 border-sky-200 bg-sky-50/30 p-2 shadow-sm">
           <div className="mb-2 rounded bg-sky-100 px-2 py-1 text-sm font-semibold text-sky-900">
-            Daily 処理予測
+            Routine Backlog・必要LH
           </div>
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-sky-200 text-left text-[10px] text-sky-800">
                 <th className="pb-1">ルーチン</th>
                 <th className="pb-1 text-right">Backlog</th>
-                <th className="pb-1 text-right">JPH</th>
+                <th className="pb-1 text-right">目標JPH</th>
                 <th className="pb-1 text-right">Plan LH</th>
+                <th className="pb-1">担当</th>
               </tr>
             </thead>
             <tbody>
-              {forecastRoutineIds(routines).map((id) => {
+              {backlogRoutineIds(routines).map((id) => {
                 const r = routines?.daily.find((x) => x.id === id);
                 const fc = plan.processing_forecasts[id] ?? {
                   forecast_units: null,
@@ -402,12 +435,41 @@ export function PlansTab({ members, routines, shifts, planSlots, roles }: Props)
                     <td className="py-1 text-right font-mono font-semibold text-sky-800">
                       {fc.plan_lh.toFixed(1)}
                     </td>
+                    <td className="py-1">
+                      <div className="flex flex-wrap gap-0.5">
+                        {attendees.map((m) => {
+                          if (!m.login) return null;
+                          const sel = (fc.assignees ?? []).includes(m.login);
+                          return (
+                            <button
+                              key={m.login}
+                              type="button"
+                              onClick={() => {
+                                const cur = fc.assignees ?? [];
+                                const next = sel
+                                  ? cur.filter((l) => l !== m.login)
+                                  : [...cur, m.login!];
+                                updateForecast(id, { assignees: next });
+                              }}
+                              className={`text-[9px] px-1 py-0.5 rounded transition-colors ${
+                                sel
+                                  ? 'bg-sky-500 text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                              }`}
+                            >
+                              {m.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Adhoc / KAIZEN */}
         <div className="rounded-lg border-2 border-amber-200 bg-amber-50/30 p-2 shadow-sm">

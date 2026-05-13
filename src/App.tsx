@@ -75,6 +75,7 @@ export default function App() {
           description: md.description || DEFAULT_META.description,
           updated_at: md.updated_at,
           default_slots: md.default_slots,
+          layout: md.layout,
         };
       }
       setMeta(nextMeta);
@@ -152,7 +153,7 @@ export default function App() {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <DashboardTab members={members} routines={routines} shifts={shifts} />
+            <DashboardTab members={members} routines={routines} shifts={shifts} planSlots={planSlots} roles={roles} />
           </TabsContent>
 
           <TabsContent value="plans">
@@ -162,6 +163,7 @@ export default function App() {
               shifts={shifts}
               planSlots={planSlots}
               roles={roles}
+              meta={meta}
             />
           </TabsContent>
 
@@ -181,6 +183,7 @@ export default function App() {
               routines={routines}
               planSlots={planSlots}
               roles={roles}
+              meta={meta}
             />
           </TabsContent>
 

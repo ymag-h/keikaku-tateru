@@ -5,6 +5,7 @@ import {
   type DailyPlan,
   type PlanSlots,
   forecastRoutineIds,
+  backlogRoutineIds,
   routinesForRole,
   getSlotLogins,
 } from '@/lib/planUtils';
@@ -16,9 +17,10 @@ type Props = {
   routines: RoutinesFile | null;
   planSlots: PlanSlots;
   roles?: Role[];
+  showForecastPanel?: boolean; // default: true
 };
 
-export function PlanPostingView({ plan, members, routines, roles }: Props) {
+export function PlanPostingView({ plan, members, routines, roles, showForecastPanel = true }: Props) {
   const rolesInPlan = useMemo(() => plannedRoles(roles ?? []), [roles]);
 
   if (!plan || !routines) {
@@ -60,10 +62,11 @@ export function PlanPostingView({ plan, members, routines, roles }: Props) {
           <th className={`${th} ${bgViolet} w-16`}>Plan LH</th>
           <th className={`${th} ${bgHeader} w-20`}>過不足LH</th>
           <th className={`${th} ${bgHeader} w-20`}>リスク</th>
+          <th className={`${th} ${bgHeader} w-24`}>担当</th>
         </tr>
       </thead>
       <tbody>
-        {forecastRoutineIds(routines).map((id) => {
+        {backlogRoutineIds(routines).map((id) => {
           const r = routines.daily.find((x) => x.id === id);
           const shortName = r?.name ?? id;
           const fc = plan.processing_forecasts[id];
@@ -100,6 +103,15 @@ export function PlanPostingView({ plan, members, routines, roles }: Props) {
               <td className={`${tdNum} bg-white`}>{diff.toFixed(1)}</td>
               <td className={`${td} text-[11px] text-gray-600 bg-white`}>
                 {fc?.risk_note ?? 'なし'}
+              </td>
+              <td className={`${td} bg-white`}>
+                <div className="flex flex-wrap gap-0.5">
+                  {(fc?.assignees ?? []).map((login) => (
+                    <span key={login} className="text-[9px] px-1 py-0.5 bg-sky-100 text-sky-800 rounded">
+                      {displayName(login)}
+                    </span>
+                  ))}
+                </div>
               </td>
             </tr>
           );
@@ -432,7 +444,7 @@ export function PlanPostingView({ plan, members, routines, roles }: Props) {
             {plan.comment || '(コメントなし)'}
           </div>
         </div>
-        {LeftForecastTable}
+        {showForecastPanel && LeftForecastTable}
         {LeftAdhocTable}
         {LeftWeeklyTable}
       </div>

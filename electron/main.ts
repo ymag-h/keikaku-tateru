@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as XLSX from 'xlsx';
+import { importJissekiXlsx, previewJissekiXlsx } from './importActuals';
 
 // NW 共有フォルダ (シフト表)
 const NW_SHIFT_DIR = '\\\\ant\\dept-as\\NRT5\\Operations\\ICQA\\11_Shift';
@@ -427,3 +428,55 @@ ipcMain.handle(
     return parseShiftXlsx(filePath, sheetName);
   },
 );
+
+
+// ========== 実績インポート ==========
+ipcMain.handle('import:fromXlsx', async (_e, opts?: { mode?: string; filePath?: string }) => {
+  try {
+    const mode = (opts?.mode ?? 'merge') as 'merge' | 'overwrite' | 'preview';
+    let filePath = opts?.filePath;
+    if (!filePath) {
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+      const result = await dialog.showOpenDialog(win!, {
+        title: '実績蓄積 xlsx / xlsm を選択',
+        properties: ['openFile'],
+        filters: [{ name: 'Excel', extensions: ['xlsx', 'xlsm'] }],
+      });
+      if (result.canceled || result.filePaths.length === 0) {
+        return { ok: false, error: 'キャンセルされました' };
+      }
+      filePath = result.filePaths[0];
+    }
+    const cfgDir = resolveConfigDir();
+    if (mode === 'preview') {
+      return previewJissekiXlsx(filePath, cfgDir);
+    }
+    return importJissekiXlsx(filePath, cfgDir, mode === 'overwrite');
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+});
+
+
+// ========== 簡易掲示板 ==========
+ipcMain.handle('board:read', async () => {
+  const filePath = path.join(resolveConfigDir(), 'board.json');
+  if (!fs.existsSync(filePath)) return { ok: true, posts: [] };
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return { ok: true, posts: data.posts ?? [] };
+  } catch (e) {
+    return { ok: false, error: String(e), posts: [] };
+  }
+});
+
+ipcMain.handle('board:write', async (_evt, posts: unknown[]) => {
+  const filePath = path.join(resolveConfigDir(), 'board.json');
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify({ posts }, null, 2) + '\n', 'utf8');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+});

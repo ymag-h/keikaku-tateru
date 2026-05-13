@@ -14,6 +14,7 @@ export type ProcessingForecast = {
   target_jph: number | null; // 目標JPH (E列)
   plan_lh: number; // Plan LH (G列)
   risk_note: string; // リスク欄 (I列)
+  assignees?: string[]; // 割当メンバー login 配列
 };
 
 // --------------------------------------------------------------------
@@ -104,6 +105,15 @@ export function forecastRoutineIds(routines: RoutinesFile | null): string[] {
   if (!routines) return [];
   return routines.daily
     .filter((r) => r.jobs_count)
+    .sort((a, b) => a.order - b.order)
+    .map((r) => r.id);
+}
+
+// 配信用・Backlog パネル表示対象 (hide_from_backlog を除外)
+export function backlogRoutineIds(routines: RoutinesFile | null): string[] {
+  if (!routines) return [];
+  return routines.daily
+    .filter((r) => r.jobs_count && !r.hide_from_backlog)
     .sort((a, b) => a.order - b.order)
     .map((r) => r.id);
 }
@@ -245,6 +255,7 @@ export function createEmptyPlan(
       target_jph: null,
       plan_lh: 0,
       risk_note: 'なし',
+      assignees: [],
     };
   }
   for (const w of routines?.weekly ?? []) {
